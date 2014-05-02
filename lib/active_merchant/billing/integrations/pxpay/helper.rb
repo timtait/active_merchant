@@ -63,8 +63,11 @@ module ActiveMerchant #:nodoc:
             raise "error - must specify return_url" if @fields['UrlSuccess'].blank?
             raise "error - must specify cancel_return_url" if @fields['UrlFail'].blank?
 
-            result = request_secure_redirect
+            raw_response = ssl_post(Pxpay.token_url, generate_request)
+            result = parse_response(raw_response)
+
             raise ActionViewHelperError, "error - failed to get token - message was #{result[:redirect]}" unless result[:valid] == "1"
+            raise "Response did not include :redirect - raw_response:#{raw_response}" unless result[:redirect]
 
             url = URI.parse(result[:redirect])
 
@@ -88,10 +91,8 @@ module ActiveMerchant #:nodoc:
             xml.to_s
           end
 
-          def request_secure_redirect
-            request = generate_request
-            response = ssl_post(Pxpay.token_url, request)
-            xml = REXML::Document.new(response)
+          def parse_response(raw_response)
+            xml = REXML::Document.new(raw_response)
             root = REXML::XPath.first(xml, "//Request")
             valid = root.attributes["valid"]
             redirect = root.elements["URI"].try(:text)
