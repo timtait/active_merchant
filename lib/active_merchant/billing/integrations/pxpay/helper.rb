@@ -67,9 +67,9 @@ module ActiveMerchant #:nodoc:
             result = parse_response(raw_response)
 
             raise ActionViewHelperError, "error - failed to get token - message was #{result[:redirect]}" unless result[:valid] == "1"
-            raise "Response did not include :redirect - raw_response:#{raw_response}" unless result[:redirect]
 
             url = URI.parse(result[:redirect])
+            raise "Response did not include query parameters - raw_response:#{raw_response}" unless url.query
 
             CGI.parse(url.query)
           end
