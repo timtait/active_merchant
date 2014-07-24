@@ -1,6 +1,7 @@
-require  'test_helper'
+require_relative  '../../test_helper'
+require 'mocha/setup'
 
-class PayonTest < Test::Unit::TestCase
+class AxcessmsTest < Test::Unit::TestCase
 
   @@success_messages = { 
     'CONNECTOR_TEST' => "Successful Processing - Request successfully processed in 'Merchant in Connector Test Mode'",
@@ -13,7 +14,7 @@ class PayonTest < Test::Unit::TestCase
   }
 
   def setup
-    @gateway = PayonGateway.new(fixtures(:payon))
+    @gateway = AxcessmsGateway.new(fixtures(:axcessms))
     @gateway.logger = Logger.new(STDOUT) 
     @gateway.logger.level = Logger::DEBUG
 
@@ -22,21 +23,6 @@ class PayonTest < Test::Unit::TestCase
     @modemsg = 'Integrator'
     @mode = @modemsg.upcase + '_TEST'
     set_options
-  end
-
-  def test_successful_void
-    @gateway.expects(:ssl_post).returns("")
-    response = @gateway.authorize(@amount, @credit_card, @options)
-    assert_success response
-    assert_equal @@success_messages[@mode], response.message
-    assert_equal @@success_codes[@mode], response.params['PROCESSING.RETURN.CODE']
-    assert response.test?
-
-    @gateway.expects(:ssl_post).returns("")
-    assert void = @gateway.void(response.authorization)
-    assert_success void
-    @gateway.logger.info("#{__method__.to_s} - message - #{void.message}, code - #{void.params['PROCESSING.RETURN.CODE']}")
-    assert_equal @@success_message[@mode], void.message
   end
 
   def test_failed_purchase
@@ -114,7 +100,21 @@ class PayonTest < Test::Unit::TestCase
     assert_equal @@success_messages[@mode], response.message
     assert_equal @@success_codes[@mode], response.params['PROCESSING.RETURN.CODE']
     assert response.test?
-    
+  end
+
+  def test_successful_void
+    @gateway.expects(:ssl_post).returns("")
+    response = @gateway.authorize(@amount, @credit_card, @options)
+    assert_success response
+    assert_equal @@success_messages[@mode], response.message
+    assert_equal @@success_codes[@mode], response.params['PROCESSING.RETURN.CODE']
+    assert response.test?
+
+    @gateway.expects(:ssl_post).returns("")
+    assert void = @gateway.void(response.authorization)
+    assert_success void
+    @gateway.logger.info("#{__method__.to_s} - message - #{void.message}, code - #{void.params['PROCESSING.RETURN.CODE']}")
+    assert_equal @@success_message[@mode], void.message
   end
 
   def test_failed_authorize

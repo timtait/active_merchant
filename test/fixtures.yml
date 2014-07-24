@@ -24,6 +24,12 @@ authorize_net:
   login: X
   password: Y
 
+axcessms:
+  sender: sender
+  login: login
+  password: password
+  channel: channel
+
 # Working credentials, no need to replace
 balanced:
   login: 'e1c5ad38d1c711e1b36c026ba7e239a9'
@@ -447,12 +453,6 @@ payment_express:
 paymill:
   private_key: PRIVATE_KEY
   public_key: PUBLIC_KEY
-
-payon:
-  sender: 8a8294174725bf9a014726623f190163
-  login: 8a8294174725bf9a014726623f1b0167
-  password: wZ9Fqrhd
-  channel: 8a8294174725bf9a01472662d87a0169
 
 # You can use either your API PEM file or API signature with PayPal.
 paypal_certificate:
