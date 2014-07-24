@@ -18,28 +18,46 @@ module ActiveMerchant #:nodoc:
       attr_accessor :logger
       attr_reader :auth_data
       
+      # Creates a new PayonGateway
+      #
+      # The gateway requires valid sender, login, password and channel are passed
+      # in the +options+ hash.
+      #
+      
       def initialize(options={})
         requires!(options, :sender, :login, :password, :channel)
         super
         @auth_data = options
       end
 
+
+      
+      # Corresponds to CC.DB in PAY.ON documentation
+      #
       def purchase(money, payment, options={})
         send_post_request(create_post_request('CC.DB', false, money, payment, options))
       end
 
+      # Corresponds to CC.PA in PAY.ON documentation
+      #
       def authorize(money, payment, options={})
         send_post_request(create_post_request('CC.PA', false, money, payment, options))
       end
 
+      # Corresponds to CC.PA in PAY.ON documentation
+      #
       def capture(money, authorization, options={})
         send_post_request(create_post_request('CC.CP', true, money, authorization, options))
       end
 
+      # Corresponds to CC.RF in PAY.ON documentation
+      #
       def refund(money, authorization, options={})
         send_post_request(create_post_request('CC.RF', true, money, authorization, options))
       end
 
+      # Corresponds to CC.RV in PAY.ON documentation
+      #
       def void(authorization, options={})
         send_post_request(create_post_request('CC.RV', true, nil, authorization, options))
       end
@@ -156,7 +174,7 @@ module ActiveMerchant #:nodoc:
 
       def build_response(raw_response)
         parsed = Hash[CGI.unescape(raw_response).scan(/([^=]+)=([^&]+)[&$]/)]
-        @logger.debug(parsed)
+        @logger.debug(parsed) if !@logger.nil?
         options = {
           :authorization => extract_authorization(parsed),
           :test => (parsed['TRANSACTION.MODE'] != 'LIVE'),
