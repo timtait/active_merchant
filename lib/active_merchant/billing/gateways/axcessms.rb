@@ -167,12 +167,6 @@ module ActiveMerchant #:nodoc:
         response['PROCESSING.RETURN.CODE'] != nil ? response['PROCESSING.RETURN.CODE'][0..2] =='000' : false;
       end
 
-      def message_from(response)
-      end
-
-      def authorization_from(response)
-      end
-
       def build_response(raw_response)
         parsed = Hash[CGI.unescape(raw_response).scan(/([^=]+)=([^&]+)[&$]/)]
         @logger.debug(parsed) if !@logger.nil?
