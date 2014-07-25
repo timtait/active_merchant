@@ -11,15 +11,6 @@ class RemoteAxcessmsTest < Test::Unit::TestCase
     @@stop_auto_run = true
     @gateway = AxcessmsGateway.new(fixtures(:axcessms))
     
-    @gateway = AxcessmsGateway.new(
-    {
-      :sender => "8a8294174725bf9a014726623f190163",
-      :login => "8a8294174725bf9a014726623f1b0167",
-      :password => "wZ9Fqrhd",
-      :channel => "8a8294174725bf9a01472662d87a0169",
-    })
-    
-    
     @gateway.logger = Logger.new(STDOUT) 
     @gateway.logger.level = Logger::DEBUG
 
@@ -33,48 +24,78 @@ class RemoteAxcessmsTest < Test::Unit::TestCase
   def test_successful_void
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
-    @gateway.logger.info("#{__method__.to_s} - message - #{auth.message}, code - #{auth.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{auth.message}, code - #{auth.params['PROCESSING.RETURN.CODE']}")
     assert_equal @@success_message[@mode], auth.message
 
+    auth.authorization['IDENTIFICATION.UNIQUEID'] += "a1"  
     assert void = @gateway.void(auth.authorization)
     assert_success void
-    @gateway.logger.info("#{__method__.to_s} - message - #{void.message}, code - #{void.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{void.message}, code - #{void.params['PROCESSING.RETURN.CODE']}")
     assert_equal @@success_message[@mode], void.message
+  end
+
+private
+  def test_failed_refund
+    purchase = @gateway.purchase(@amount, @credit_card, @options)
+    assert_success purchase
+    assert_equal @@success_message[@mode], purchase.message
+    log_info("#{__method__.to_s} -  message - #{purchase.message}, code - #{purchase.params['PROCESSING.RETURN.CODE']}")
+
+    purchase.authorization['IDENTIFICATION.UNIQUEID'] += "a1"  
+    assert refund = @gateway.refund(nil, purchase.authorization)
+    assert_failure refund
+    log_info("#{__method__.to_s} - message - #{refund.message}, code - #{refund.params['PROCESSING.RETURN.CODE']}")
+  end
+
+  def test_failed_bigger_capture_then_authorised
+    auth = @gateway.authorize(@amount, @credit_card, @options)
+    assert_success auth
+    log_info("#{__method__.to_s} - message - #{auth.message}, code - #{auth.params['PROCESSING.RETURN.CODE']}")
+
+    assert capture = @gateway.capture(@amount+30, auth.authorization)
+    log_info("#{__method__.to_s} - message - #{capture.message}, code - #{capture.params['PROCESSING.RETURN.CODE']}")
+    assert_failure capture
+  end
+
+  def test_failed_authorize
+    response = @gateway.authorize(@amount, @declined_card, @options)
+    log_info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
+    assert_failure response
   end
 
   def test_successful_refund
     purchase = @gateway.purchase(@amount, @credit_card, @options)
     assert_success purchase
     assert_equal @@success_message[@mode], purchase.message
-    @gateway.logger.info("#{__method__.to_s} -  message - #{purchase.message}, code - #{purchase.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} -  message - #{purchase.message}, code - #{purchase.params['PROCESSING.RETURN.CODE']}")
 
     assert refund = @gateway.refund(nil, purchase.authorization)
     assert_success refund
-    @gateway.logger.info("#{__method__.to_s} - message - #{refund.message}, code - #{refund.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{refund.message}, code - #{refund.params['PROCESSING.RETURN.CODE']}")
     assert_equal @@success_message[@mode], refund.message
   end
 
   def test_successful_partial_refund
     purchase = @gateway.purchase(@amount, @credit_card, @options)
     assert_success purchase
-    @gateway.logger.info("#{__method__.to_s} - message - #{purchase.message}, code - #{purchase.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{purchase.message}, code - #{purchase.params['PROCESSING.RETURN.CODE']}")
     assert_equal @@success_message[@mode], purchase.message
 
     assert refund = @gateway.refund(@amount-50, purchase.authorization)
     assert_success refund
-    @gateway.logger.info("#{__method__.to_s} - message - #{refund.message}, code - #{refund.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{refund.message}, code - #{refund.params['PROCESSING.RETURN.CODE']}")
     assert_equal @@success_message[@mode], refund.message
-    @gateway.logger.info("-------------------------------------------------------------------------------------------------------------------------------------------")
+    log_info("-------------------------------------------------------------------------------------------------------------------------------------------")
   end
 
   def test_successful_authorize_and_capture
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
-    @gateway.logger.info("#{__method__.to_s} - message - #{auth.message}, code - #{auth.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{auth.message}, code - #{auth.params['PROCESSING.RETURN.CODE']}")
     assert_equal @@success_message[@mode], auth.message
 
     assert capture = @gateway.capture(nil, auth.authorization)
-    @gateway.logger.info("#{__method__.to_s} - message - #{capture.message}, code - #{capture.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{capture.message}, code - #{capture.params['PROCESSING.RETURN.CODE']}")
     assert_success capture
     assert_equal @@success_message[@mode], capture.message
   end
@@ -82,7 +103,7 @@ class RemoteAxcessmsTest < Test::Unit::TestCase
   def test_successful_purchase
     response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
-    @gateway.logger.info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
 
     assert_equal @@success_message[@mode], response.message
   end
@@ -90,57 +111,41 @@ class RemoteAxcessmsTest < Test::Unit::TestCase
   def test_successful_partial_capture
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
-    @gateway.logger.info("#{__method__.to_s} - message - #{auth.message}, code - #{auth.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{auth.message}, code - #{auth.params['PROCESSING.RETURN.CODE']}")
     assert_equal @@success_message[@mode], auth.message
 
     assert capture = @gateway.capture(@amount-30, auth.authorization)
-    @gateway.logger.info("#{__method__.to_s} - message - #{capture.message}, code - #{capture.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{capture.message}, code - #{capture.params['PROCESSING.RETURN.CODE']}")
     assert_success capture
     assert_equal @@success_message[@mode], capture.message
   end
 
-  def test_failed_bigger_capture_then_authorised
-    auth = @gateway.authorize(@amount, @credit_card, @options)
-    assert_success auth
-    @gateway.logger.info("#{__method__.to_s} - message - #{auth.message}, code - #{auth.params['PROCESSING.RETURN.CODE']}")
-
-    assert capture = @gateway.capture(@amount+30, auth.authorization)
-    @gateway.logger.info("#{__method__.to_s} - message - #{capture.message}, code - #{capture.params['PROCESSING.RETURN.CODE']}")
-    assert_failure capture
-  end
-
   def test_failed_capture
     response = @gateway.capture(nil, '')
-    @gateway.logger.info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
     assert_failure response
   end
 
   def test_failed_capture_wrong_refid
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
-    @gateway.logger.info("#{__method__.to_s} - message - #{auth.message}, code - #{auth.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{auth.message}, code - #{auth.params['PROCESSING.RETURN.CODE']}")
 
     auth.authorization['IDENTIFICATION.UNIQUEID'] += "a" 
     assert capture = @gateway.capture(@amount, auth.authorization)
-    @gateway.logger.info("#{__method__.to_s} - message - #{capture.message}, code - #{capture.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{capture.message}, code - #{capture.params['PROCESSING.RETURN.CODE']}")
     assert_failure capture
-  end
-
-  def test_failed_refund
-    response = @gateway.refund(nil, '')
-    @gateway.logger.info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
-    assert_failure response
   end
 
   def test_failed_void
     response = @gateway.void('')
-    @gateway.logger.info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
     assert_failure response
   end
 
   def test_failed_purchase
     response = @gateway.purchase(@amount, @declined_card, @options)
-    @gateway.logger.info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
     assert_failure response
     #assert_equal 'REPLACE WITH FAILED PURCHASE MESSAGE', response.message
   end
@@ -152,16 +157,9 @@ class RemoteAxcessmsTest < Test::Unit::TestCase
     g.logger = Logger.new(STDOUT) 
     g.logger.level = Logger::DEBUG
     response = g.purchase(@amount, @credit_card, @options)
-    @gateway.logger.info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
+    log_info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
     assert_failure response
   end
-
-  def test_failed_authorize
-    response = @gateway.authorize(@amount, @declined_card, @options)
-    @gateway.logger.info("#{__method__.to_s} - message - #{response.message}, code - #{response.params['PROCESSING.RETURN.CODE']}")
-    assert_failure response
-  end
-
 
   def set_options
       @options['TRANSACTION.MODE'] = @mode
@@ -175,6 +173,9 @@ class RemoteAxcessmsTest < Test::Unit::TestCase
         :country => "DE",
       }
   end
-  
+
+  def log_info(params)   
+    @gateway.logger.info(params)
+  end 
 end
 
