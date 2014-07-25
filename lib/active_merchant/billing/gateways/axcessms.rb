@@ -169,7 +169,6 @@ module ActiveMerchant #:nodoc:
 
       def build_response(raw_response)
         parsed = Hash[CGI.unescape(raw_response).scan(/([^=]+)=([^&]+)[&$]/)]
-        @logger.debug(parsed) if !@logger.nil?
         options = {
           :authorization => extract_authorization(parsed),
           :test => (parsed['TRANSACTION.MODE'] != 'LIVE'),
