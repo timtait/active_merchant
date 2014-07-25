@@ -34,7 +34,6 @@ class RemoteAxcessmsTest < Test::Unit::TestCase
     assert_equal @@success_message[@mode], void.message
   end
 
-private
   def test_failed_refund
     purchase = @gateway.purchase(@amount, @credit_card, @options)
     assert_success purchase
