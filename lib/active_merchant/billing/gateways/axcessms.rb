@@ -4,9 +4,9 @@ module ActiveMerchant #:nodoc:
       self.test_url = 'https://test.ctpe.net/frontend/payment.prc'
       self.live_url = 'https://ctpe.net/frontend/payment.prc'
 
-      self.supported_countries = %w(AD AT BE BG CH CY CZ DE DK EE ES FI FO FR GB
-                                    GI GR HR HU IE IL IM IS IT LI LT LU LV MC MT
-                                    NL NO PL PT RO SE SI SK TR VA)
+      self.supported_countries = %w(AD AT BE BG BR CA CH CY CZ DE DK EE ES FI FO FR GB
+                                    GI GR HR HU IE IL IM IS IT LI LT LU LV MC MT MX NL 
+                                    NO PL PT RO RU SE SI SK TR US VA)
       
       self.supported_cardtypes = [:visa, :master, :american_express, :discover, :jcb, :maestro, :solo, ]
 
@@ -32,31 +32,31 @@ module ActiveMerchant #:nodoc:
 
 
       
-      # Corresponds to CC.DB in PAY.ON documentation
+      # Corresponds to CC.DB  in the POST documentation
       #
       def purchase(money, payment, options={})
         send_post_request(create_post_request('CC.DB', false, money, payment, options))
       end
 
-      # Corresponds to CC.PA in PAY.ON documentation
+      # Corresponds to CC.PA  in the POST documentation
       #
       def authorize(money, payment, options={})
         send_post_request(create_post_request('CC.PA', false, money, payment, options))
       end
 
-      # Corresponds to CC.PA in PAY.ON documentation
+      # Corresponds to CC.PA  in the POST documentation
       #
       def capture(money, authorization, options={})
         send_post_request(create_post_request('CC.CP', true, money, authorization, options))
       end
 
-      # Corresponds to CC.RF in PAY.ON documentation
+      # Corresponds to CC.RF  in the POST documentation
       #
       def refund(money, authorization, options={})
         send_post_request(create_post_request('CC.RF', true, money, authorization, options))
       end
 
-      # Corresponds to CC.RV in PAY.ON documentation
+      # Corresponds to CC.RV  in the POST documentation
       #
       def void(authorization, options={})
         send_post_request(create_post_request('CC.RV', true, nil, authorization, options))
