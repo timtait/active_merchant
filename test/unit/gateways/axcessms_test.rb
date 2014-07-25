@@ -1,5 +1,6 @@
-require_relative  '../../test_helper'
+#require_relative  '../../test_helper'
 require 'mocha/setup'
+require  'test_helper'
 
 class AxcessmsTest < Test::Unit::TestCase
 

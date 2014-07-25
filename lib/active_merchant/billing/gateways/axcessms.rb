@@ -8,7 +8,7 @@ module ActiveMerchant #:nodoc:
                                     GI GR HR HU IE IL IM IS IT LI LT LU LV MC MT
                                     NL NO PL PT RO SE SI SK TR VA)
       
-      self.supported_cardtypes = [:visa, :master, :american_express, :discover]
+      self.supported_cardtypes = [:visa, :master, :american_express, :discover, :jcb, :maestro, :solo, ]
 
       self.homepage_url = 'http://www.axcessms.com/'
       self.display_name = 'Axcessms Gateway'
@@ -120,7 +120,8 @@ module ActiveMerchant #:nodoc:
 
       def add_payment(money, post)
         post['PRESENTATION.AMOUNT'] = amount(money)
-        post['PRESENTATION.CURRENCY'] = (post[:currency] || currency(money) || @default_currency)
+        post['PRESENTATION.CURRENCY'] = post[:currency] || currency(money) || @default_currency
+        post['PRESENTATION.USAGE'] = post[:order_id] || post[:invoice] || post['PRESENTATION.USAGE']  
       end
             
       def add_authorization(money, post)
