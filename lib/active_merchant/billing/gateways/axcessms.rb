@@ -34,46 +34,67 @@ module ActiveMerchant #:nodoc:
       
       # Corresponds to CC.DB  in the POST documentation
       #
-      def purchase(money, payment, options={})
-        send_post_request(create_post_request('CC.DB', false, money, payment, options))
+      def purchase(money, credit_card, options={})
+        options[:credit_card] = credit_card
+        commit('CC.DB', money, options)
       end
 
       # Corresponds to CC.PA  in the POST documentation
       #
-      def authorize(money, payment, options={})
-        send_post_request(create_post_request('CC.PA', false, money, payment, options))
+      def authorize(money, credit_card, options={})
+        options[:credit_card] = credit_card
+        commit('CC.PA', money, options)
       end
 
       # Corresponds to CC.PA  in the POST documentation
       #
       def capture(money, authorization, options={})
-        send_post_request(create_post_request('CC.CP', true, money, authorization, options))
+        options[:authorization] = authorization
+        commit('CC.CP', money, options)
       end
 
       # Corresponds to CC.RF  in the POST documentation
       #
       def refund(money, authorization, options={})
-        send_post_request(create_post_request('CC.RF', true, money, authorization, options))
+        options[:authorization] = authorization
+        commit('CC.RF', money, options)
       end
 
       # Corresponds to CC.RV  in the POST documentation
       #
       def void(authorization, options={})
-        send_post_request(create_post_request('CC.RV', true, nil, authorization, options))
+        options[:authorization] = authorization
+        commit('CC.RV', nil, options)
       end
 
       private
 
-      def create_post_request(paymentcode, need_authorisation, money, payment, options) 
-        post = Marshal.load(Marshal.dump(options))
-        if payment.kind_of?(Hash)
-          post = post.merge(payment)
-        else
-          post[:credit_card] = payment
-        end   
+      def commit(paymentcode, money, options)
+        request = build_request(paymentcode, money, options)
+        headers = { 'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8' }
+
+        raw_response = ssl_post((test? ? test_url : live_url), post_data(request), headers)
+
+        parsed = Hash[CGI.unescape(raw_response).scan(/([^=]+)=([^&]+)[&$]/)]
+
+        Response.new(success?(parsed), response_message(parsed), parsed,
+          :authorization => extract_authorization(parsed),
+          :test => (parsed['TRANSACTION.MODE'] != 'LIVE')
+        )
+      rescue ResponseError => e
+        begin
+          parsed = JSON.parse(e.response.body)
+        rescue JSON::ParserError
+          return Response.new(false, "Unable to parse error response: '#{e.response.body}'")
+        end
+        return Response.new(false, response_message(parsed), parsed, {})
+      end
+
+      def build_request(paymentcode, money, options)
+        post = options
         post['PAYMENT.CODE'] = paymentcode
-        add_authentication(post)  
-        if need_authorisation 
+        add_authentication(post)
+        if options[:authorization]
           add_authorization(money, post)
         else  
           requires!(post, :credit_card)
@@ -93,22 +114,6 @@ module ActiveMerchant #:nodoc:
         post.delete(:address)
         post.delete(:billing_address)
         post
-      end
-      
-      def send_post_request(request)
-        begin
-          raw_response = ssl_post((test? ? test_url : live_url), post_data(request), 
-            { 'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8' })
-        rescue ResponseError => e
-          begin
-            parsed = JSON.parse(e.response.body)
-          rescue JSON::ParserError
-            return Response.new(false, "Unable to parse error response: '#{e.response.body}'")
-          end
-          return Response.new(false, response_message(parsed), parsed, {})
-        end
-        
-        build_response(raw_response)
       end
 
       def add_authentication(post)
@@ -167,17 +172,6 @@ module ActiveMerchant #:nodoc:
         response['PROCESSING.RETURN.CODE'] != nil ? response['PROCESSING.RETURN.CODE'][0..2] =='000' : false;
       end
 
-      def build_response(raw_response)
-        parsed = Hash[CGI.unescape(raw_response).scan(/([^=]+)=([^&]+)[&$]/)]
-        options = {
-          :authorization => extract_authorization(parsed),
-          :test => (parsed['TRANSACTION.MODE'] != 'LIVE'),
-        }
-
-
-        Response.new(success?(parsed), response_message(parsed), parsed, options)
-      end
-      
       def response_message(parsed_response)
         parsed_response["PROCESSING.REASON"].nil? ? 
           parsed_response["PROCESSING.RETURN"] :
