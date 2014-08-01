@@ -155,6 +155,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_account(post)
+        post['ACCOUNT.HOLDER'] = "#{post[:credit_card].first_name} #{post[:credit_card].last_name}"
         post['ACCOUNT.NUMBER'] = post[:credit_card].number
         post['ACCOUNT.EXPIRY_MONTH'] = sprintf("%.2i", post[:credit_card].month)
         post['ACCOUNT.EXPIRY_YEAR'] = sprintf("%.4i", post[:credit_card].year)
